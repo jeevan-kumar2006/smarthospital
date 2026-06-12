@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+{% block title %}Smart HMS{% endblock %}
+{% block content %}
+
+{# ============ DASHBOARD ============ #}
+{% if page == 'dashboard' %}
+<div class="page-header"><h2>Dashboard</h2><p>Real-time hospital operations overview from database</p></div>
+<div class="row g-3 mb-4">
+  <div class="col-xl col-md-4 col-sm-6"><div class="stat-card blue"><div class="stat-icon"><i class="bi bi-people"></i></div><div class="stat-value">{{ tp }}</div><div class="stat-label">Total Patients</div></div></div>
+  <div class="col-xl col-md-4 col-sm-6"><div class="stat-card green"><div class="stat-icon"><i class="bi bi-person-badge"></i></div><div class="stat-value">{{ td }}</div><div class="stat-label">Total Doctors</div></div></div>
+  <div class="col-xl col-md-4 col-sm-6"><div class="stat-card orange"><div class="stat-icon"><i class="bi bi-calendar-check"></i></div><div class="stat-value">{{ ta }}</div><div class="stat-label">Appointments</div></div></div>
+  <div class="col-xl col-md-4 col-sm-6"><div class="stat-card purple"><div class="stat-icon"><i class="bi bi-currency-rupee"></i></div><div class="stat-value">₹{{ "{:,.0f}".format(tr) }}</div><div class="stat-label">Total Revenue</div></div></div>
+  <div class="col-xl col-md-4 col-sm-6"><div class="stat-card cyan"><div class="stat-icon"><i class="bi bi-capsule"></i></div><div class="stat-value">{{ tm }}</div><div class="stat-label">Available Medicines</div></div></div>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-lg-8">
+    <div class="data-card"><div class="ch"><h5><i class="bi bi-clock-history me-2"></i>Recent Appointments</h5><a href="/appointments/" class="btn-o btn-sm">View All</a></div>
+      <div class="cb" style="padding:0"><div class="table-responsive"><table class="table tbl table-hover mb-0"><thead><tr><th>ID</th><th>Patient</th><th>Doctor</th><th>Date</th><th>Status</th></tr></thead><tbody>
+      {% for a in ra %}<tr><td>#{{ a.appointment_id }}</td><td class="fw6">{{ a.pn }}</td><td>{{ a.dn }}</td><td>{{ a.appointment_date }}</td><td><span class="badge-s b-{{ a.status.lower() }}">{{ a.status }}</span></td></tr>{% endfor %}
+      </tbody></table></div></div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="data-card"><div class="ch"><h5><i class="bi bi-calendar-event me-2"></i>Upcoming</h5></div>
+      <div class="cb">
+      {% for a in ua %}<div class="activity-item"><div class="adot b"></div><div><div class="atxt"><strong>{{ a.pn }}</strong> → {{ a.dn }}<br><small>{{ a.appointment_date }} {{ a.appointment_time }}</small></div></div></div>{% endfor %}
+      {% if not ua %}<div class="empty-state"><i class="bi bi-calendar-x"></i><p>No upcoming appointments</p></div>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="data-card"><div class="ch"><h5><i class="bi bi-receipt me-2"></i>Recent Payments</h5></div>
+      <div class="cb" style="padding:0"><div class="table-responsive"><table class="table tbl mb-0"><thead><tr><th>Patient</th><th>Amount</th><th>Method</th><th>Date</th></tr></thead><tbody>
+      {% for p in rp %}<tr><td>{{ p.pn }}</td><td class="fw6">₹{{ "{:,.2f}".format(p.amount) }}</td><td>{{ p.payment_method }}</td><td>{{ p.payment_date }}</td></tr>{% endfor %}
+      </tbody></table></div></div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="data-card"><div class="ch"><h5><i class="bi bi-exclamation-triangle me-2 text-danger"></i>Low Stock Medicines</h5><a href="/medicines/" class="btn-o btn-sm">View All</a></div>
+      <div class="cb" style="padding:0"><div class="table-responsive"><table class="table tbl mb-0"><thead><tr><th>Medicine</th><th>Stock</th><th>Reorder Level</th><th>Status</th></tr></thead><tbody>
+      {% for m in ls %}<tr><td>{{ m.name }}</td><td class="fw6">{{ m.stock_quantity }}</td><td>{{ m.reorder_level }}</td><td><span class="badge-s b-low">Low Stock</span></td></tr>{% endfor %}
+      {% if not ls %}<tr><td colspan="4" class="text-center text-muted py-3">All medicines adequately stocked</td></tr>{% endif %}
+      </tbody></table></div></div>
+    </div>
+  </div>
+</div>
+
+{# ============ PATIENTS LIST ============ #}
+{% elif page == 'patients' %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div><h2>Patients</h2><p>Manage patient records</p></div>
+  <div class="d-flex gap-2">
+    <form method="get" class="d-flex"><input type="text" name="search" value="{{ search }}" class="form-control fc" placeholder="Search..." style="width:200px"><button class="btn btn-o">Search</button></form>
+    <a href="/patients/add" class="btn-a"><i class="bi bi-plus-lg me-1"></i>Add Patient</a>
+  </div>
+</div>
+<div class="data-card"><div class="cb" style="padding:0"><div class="table-responsive"><table class="table tbl table-hover mb-0"><thead><tr><th>ID</th><th>Name</th><th>Gender</th><th>Phone</th><th>Blood Group</th><th>Actions</th></tr></thead><tbody>
+{% for p in patients %}<tr>
+  <td>{{ p.patient_id }}</td><td class="fw6"><a href="/patients/history/{{ p.patient_id }}" class="text-decoration-none">{{ p.name }}</a></td>
+  <td>{{ p.gender }}</td><td>{{ p.phone }}</td><td><span class="badge bg-secondary">{{ p.blood_group or 'N/A' }}</span></td>
+  <td><a href="/patients/edit/{{ p.patient_id }}" class="btn btn-sm btn-outline-primary me-1">Edit</a>
+      <form method="post" action="/patients/delete/{{ p.patient_id }}" style="display:inline" data-cf><button class="btn btn-sm btn-outline-danger">Delete</button></form>
+      <a href="/patients/history/{{ p.patient_id }}" class="btn btn-sm btn-outline-info">History</a></td>
+</tr>{% endfor %}
+{% if not patients %}<tr><td colspan="6" class="text-center py-4 text-muted">No patients found</td></tr>{% endif %}
+</tbody></table></div></div></div>
+
+{# ============ PATIENT FORM ============ #}
+{% elif page == 'patient_form' %}
+<div class="page-header"><h2>{% if edit %}Edit Patient{% else %}Add Patient{% endif %}</h2></div>
+<div class="data-card"><div class="cb"><form method="post" class="row g-3" style="max-width:700px">
+  <div class="col-md-6"><label class="fl">Name *</label><input type="text" name="name" class="form-control fc" value="{{ patient.name if edit else '' }}" required></div>
+  <div class="col-md-6"><label class="fl">Date of Birth</label><input type="date" name="dob" class="form-control fc" value="{{ patient.dob if edit else '' }}"></div>
+  <div class="col-md-6"><label class="fl">Gender</label><select name="gender" class="form-select fc"><option value="">Select</option>{% for g in ['Male','Female','Other'] %}<option value="{{ g }}" {% if edit and patient.gender==g %}selected{% endif %}>{{ g }}</option>{% endfor %}</select></div>
+  <div class="col-md-6"><label class="fl">Phone *</label><input type="text" name="phone" class="form-control fc" value="{{ patient.phone if edit else '' }}" required></div>
+  <div class="col-md-6"><label class="fl">Email</label><input type="email" name="email" class="form-control fc" value="{{ patient.email if edit else '' }}"></div>
+  <div class="col-md-6"><label class="fl">Blood Group</label><select name="blood_group" class="form-select fc"><option value="">Select</option>{% for bg in ['A+','A-','B+','B-','AB+','AB-','O+','O-'] %}<option value="{{ bg }}" {% if edit and patient.blood_group==bg %}selected{% endif %}>{{ bg }}</option>{% endfor %}</select></div>
+  <div class="col-12"><label class="fl">Address</label><textarea name="address" class="form-control fc" rows="2">{{ patient.address if edit else '' }}</textarea></div>
+  <div class="col-12"><button type="submit" class="btn-a"><i class="bi bi-check-lg me-1"></i>{% if edit %}Update{% else %}Add{% endif %} Patient</button>
+    <a href="/patients/" class="btn-o">Cancel</a></div>
+</form></div></div>
+
+{# ============ PATIENT HISTORY ============ #}
+{% elif page == 'patient_history' %}
+<div class="page-header d-flex justify-content-between align-items-center">
+  <div><h2>Patient History</h2><p>{{ patient.name }} — {{ patient.gender }}, {{ patient.blood_group or 'N/A' }}</p></div>
+  <a href="/patients/" class="btn-o"><i class="bi bi-arrow-left me-1"></i>Back</a>
+</div>
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="data-card"><div class="ch"><h5><i class="bi bi-clipboard2-pulse me-2"></i>Treatments ({{ hist|length }})</h5></div>
+      <div class="cb">{% for t in hist %}<div class="presc-row mb-2"><strong>{{ t.diagnosis }}</strong><br><small class="text-muted">{{ t.treatment_details or 'N/A' }}</small><br><span class="fs12 text-muted">{{ t.treatment_date }} | Dr. {{ t.dn }} | {{ t.depn }}</span></div>{% endfor %}
+      {% if not hist %}<div class="empty-state"><p>No treatments recorded</p></div>{% endif %}</div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="data-card"><div class="ch"><h5><i class="bi bi-capsule me-2"></i>Prescriptions ({{ pres|length }})</h5></div>
+      <div class="cb" style="padding:0"><div class="table-responsive"><table class="table tbl mb-0"><thead><tr><th>Medicine</th><th>Dosage</th><th>Days</th><th>Instructions</th></tr></thead><tbody>
+      {% for pr in pres %}<tr><td>{{ pr.mn }}</td><td>{{ pr.dosage }}</td><td>{{ pr.duration_days }}</td><td>{{ pr.instructions or '-' }}</td></tr>{% endfor %}
+      {% if not pres %}<tr><td colspan="4" class="text-center py-3 text-muted">No prescriptions</td></tr>{% endif %}
+      </tbody></table></div></div>
+    </div>
+  </div>
+</div>
+<div class="row g-3 mt-0">
+  <div class="col-lg-6">
+    <div class="data-card"><div class="ch"><h5><i class="bi bi-calendar-check me-2"></i>Appointments ({{ apts|length }})</h5></div>
+      <div class="cb" style="padding:0"><div class="table-responsive"><table class="table tbl mb-0"><thead><tr><th>Date</th><th>Doctor</th><th>Status</th><th>Reason</th></tr></thead><tbody>
+      {% for a in apts %}<tr><td>{{ a.appointment_date }}</td><td>{{ a.dn }}</td><td><span class="badge-s b-{{ a.status.lower() }}">{{ a.status }}</span></td><td>{{ a.reason or '-' }}</td></tr>{% endfor %}
+      </tbody></table></div></div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="data-card"><div class="ch"><h5><i class="bi bi-receipt me-2"></i>Bills ({{ bills|length }})</h5></div>
+      <div class="cb" style="padding:0"><div class="table-responsive"><table class="table tbl mb-0"><thead><tr><th>Bill#</th><th>Total</th><th>Paid</th><th>Status</th><th>Date</th></tr></thead><tbody>
+      {% for b in bills %}<tr><td>#{{ b.bill_id }}</td><td class="fw6">₹{{ "{:,.2f}".format(b.total_amount) }}</td><td>₹{{ "{:,.2f}".format(b.paid) }}</td><td><span class="badge-s b-{{ b.status.lower() }}">{{ b.status }}</span></td><td>{{ b.bill_date }}</td></tr>{% endfor %}
+      </tbody></table></div></div>
+    </div>
+  </div>
+</div>
+
+{# ============ DOCTORS LIST ============ #}
+{% elif page == 'doctors' %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div><h2>Doctors</h2><p>Manage doctor records</p></div>
+  <div class="d-flex gap-2">
+    <a href="/doctors/schedule" class="btn-o"><i class="bi bi-calendar3 me-1"></i>Schedules</a>
+    <a href="/doctors/add" class="btn-a"><i class="bi bi-plus-lg me-1"></i>Add Doctor</a>
+  </div>
+</div>
+<div class="data-card"><div class="cb" style="padding:0"><div class="table-responsive"><table class="table tbl table-hover mb-0"><thead><tr><th>ID</th><th>Name</th><th>Specialization</th><th>Department</th><th>Fee</th><th>Available Days</th><th>Actions</th></tr></thead><tbody>
+{% for d in doctors %}<tr>
+  <td>{{ d.doctor_id }}</td><td class="fw6">{{ d.name }}</td><td>{{ d.specialization }}</td><td>{{ d.depn }}</td><td class="fw6">₹{{ "{:,.0f}".format(d.fee) }}</td><td class="fs12">{{ d.available_days }}</td>
+  <td><a href="/doctors/edit/{{ d.doctor_id }}" class="btn btn-sm btn-outline-primary me-1">Edit</a>
+      <form method="post" action="/doctors/delete/{{ d.doctor_id }}" style="display:inline" data-cf><button class="btn btn-sm btn-outline-danger">Delete</button></form></td>
+</tr>{% endfor %}
+</tbody></table></div></div></div>
+
+{# ============ DOCTOR FORM ============ #}
+{% elif page == 'doctor_form' %}
+<div class="page-header"><h2>{% if edit %}Edit Doctor{% else %}Add Doctor{% endif %}</h2></div>
+<div class="data-card"><div class="cb"><form method="post" class="row g-3" style="max-width:700px">
+  <div class="col-md-6"><label class="fl">Name *</label><input type="text" name="name" class="form-control fc" value="{{ doctor.name if edit else '' }}" required></div>
+  <div class="col-md-6"><label class="fl">Specialization *</label><input type="text" name="specialization" class="form-control fc" value="{{ doctor.specialization if edit else '' }}" required></div>
+  <div class="col-md-6"><label class="fl">Phone *</label><input type="text" name="phone" class="form-control fc" value="{{ doctor.phone if edit else '' }}" required></div>
+  <div class="col-md-6"><label class="fl">Email</label><input type="email" name="email" class="form-control fc" value="{{ doctor.email if edit else '' }}"></div>
+  <div class="col-md-6"><label class="fl">Department *</label><select name="dept_id" class="form-select fc" required><option value="">Select</option>{% for dp in depts %}<option value="{{ dp.dept_id }}" {% if edit and doctor.dept_id==dp.dept_id %}selected{% endif %}>{{ dp.name }}</option>{% endfor %}</select></div>
+  <div class="col-md-3"><label class="fl">Experience (yrs)</label><input type="number" name="experience_years" class="form-control fc" value="{{ doctor.experience_years if edit else '0' }}" min="0"></div>
+  <div class="col-md-3"><label class="fl">Fee *</label><input type="number" name="fee" class="form-control fc" value="{{ doctor.fee if edit else '' }}" step="0.01" min="0" required></div>
+  <div class="col-12"><label class="fl">Available Days</label><input type="text" name="available_days" class="form-control fc" placeholder="e.g. Mon,Wed,Fri" value="{{ doctor.available_days if edit else '' }}"></div>
+  <div class="col-12"><button type="submit" class="btn-a"><i class="bi bi-check-lg me-1"></i>{% if edit %}Update{% else %}Add{% endif %} Doctor</button><a href="/doctors/" class="btn-o">Cancel</a></div>
+</form></div></div>
+
+{# ============ DOCTOR SCHEDULE ============ #}
+{% elif page == 'doctor_schedule' %}
+<div class="page-header d-flex justify-content-between align-items-center"><div><h2>Doctor Schedules</h2><p>Weekly availability from database</p></div><a href="/doctors/" class="btn-o"><i class="bi bi-arrow-left me-1"></i>Back</a></div>
+<div class="data-card"><div class="cb" style="padding:0"><div class="table-responsive"><table class="table tbl table-hover mb-0"><thead><tr><th>Doctor</th><th>Specialization</th><th>Department</th><th>Available Days</th><th>Fee</th></tr></thead><tbody>
+{% for s in schedules %}<tr><td class="fw6">{{ s.name }}</td><td>{{ s.specialization }}</td><td>{{ s.depn }}</td><td>{{ s.available_days }}</td><td>₹{{ "{:,.0f}".format(s.fee) }}</td></tr>{% endfor %}
+</tbody></table></div></div></div>
+
+{# ============ APPOINTMENTS LIST ============ #}
+{% elif page == 'appointments' %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div><h2>Appointments</h2><p>Manage appointments</p></div>
+  <div class="d-flex gap-2">
+    <form method="get" class="d-flex"><select name="status" class="form-select fc" style="width:150px" onchange="this.form.submit()"><option value="">All Status</option>{% for st in ['Scheduled','Completed','Cancelled','No-Show'] %}<option value="{{ st }}" {% if sf==st %}selected{% endif %}>{{ st }}</option>{% endfor %}</select></form>
+    <a href="/appointments/book" class="btn-a"><i class="bi bi-plus-lg me-1"></i>Book Appointment</a>
+  </div>
+</div>
+<div class="data-card"><div class="cb" style="padding:0"><div class="table-responsive"><table class="table tbl table-hover mb-0"><thead><tr><th>ID</th><th>Patient</th><th>Doctor</th><th>Department</th><th>Date</th><th>Time</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+{% for a in appointments %}<tr>
+  <td>#{{ a.appointment_id }}</td><td class="fw6">{{ a.pn }}</td><td>{{ a.dn }}</td><td>{{ a.depn }}</td><td>{{ a.appointment_date }}</td><td>{{ a.appointment_time }}</td>
+  <td><span class="badge-s b-{{ a.status.lower() }}">{{ a.status }}</span></td>
+  <td>{% if a.status=='Scheduled' %}<form method="post" action="/appointments/update-status/{{ a.appointment_id }}" style="display:inline"><select name="status" class="form-select form-select-sm" style="width:120px" onchange="this.form.submit()"><option value="Scheduled" {% if a.status=='Scheduled' %}selected{% endif %}>Scheduled</option><option value="Completed">Complete</option><option value="No-Show">No-Show</option></select></form>
+  <form method="post" action="/appointments/cancel/{{ a.appointment_id }}" style="display:inline" data-cf><button class="btn btn-sm btn-outline-danger">Cancel</button></form>{% else %}<span class="fs12 text-muted">—</span>{% endif %}</td>
+</tr>{% endfor %}
+</tbody></table></div></div></div>
+
+{# ============ APPOINTMENT FORM ============ #}
+{% elif page == 'appointment_form' %}
+<div class="page-header"><h2>Book Appointment</h2></div>
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+<div class="data-card"><div class="cb"><form method="post" class="row g-3" style="max-width:600px">
+  <div class="col-12"><label class="fl">Patient *</label><select name="patient_id" class="form-select fc" required><option value="">Select Patient</option>{% for p in pts %}<option value="{{ p.patient_id }}">{{ p.name }}</option>{% endfor %}</select></div>
+  <div class="col-12"><label class="fl">Doctor *</label><select name="doctor_id" class="form-select fc" required><option value="">Select Doctor</option>{% for d in docs %}<option value="{{ d.doctor_id }}">{{ d.name }} — {{ d.depn }} ({{ d.specialization }})</option>{% endfor %}</select></div>
+  <div class="col-md-6"><label class="fl">Date *</label><input type="date" name="appointment_date" class="form-control fc" required></div>
+  <div class="col-md-6"><label class="fl">Time *</label><input type="time" name="appointment_time" class="form-control fc" required></div>
+  <div class="col-12"><label class="fl">Reason</label><textarea name="reason" class="form-control fc" rows="2"></textarea></div>
+  <div class="col-12"><button type="submit" class="btn-a"><i class="bi bi-check-lg me-1"></i>Book</button><a href="/appointments/" class="btn-o">Cancel</a></div>
+</form></div></div>
+
+{# ============ TREATMENTS LIST ============ #}
+{% elif page == 'treatments' %}
+<div class="page-header d-flex justify-content-between align-items-center"><div><h2>Treatments</h2><p>Diagnosis and treatment records</p></div><a href="/treatments/add" class="btn-a"><i class="bi bi-plus-lg me-1"></i>Record Treatment</a></div>
+<div class="data-card"><div class="cb" style="padding:0"><div class="table-responsive"><table class="table tbl table-hover mb-0"><thead><tr><th>ID</th><th>Patient</th><th>Diagnosis</th><th>Doctor</th><th>Department</th><th>Date</th></tr></thead><tbody>
+{% for t in treatments %}<tr><td>{{ t.treatment_id }}</td><td class="fw6">{{ t.pn }}</td><td>{{ t.diagnosis }}</td><td>{{ t.dn }}</td><td>{{ t.depn }}</td><td>{{ t.treatment_date }}</td></tr>{% endfor %}
+{% if not treatments %}<tr><td colspan="6" class="text-center py-4 text-muted">No treatments recorded</td></tr>{% endif %}
+</tbody></table></div></div></div>
+
+{# ============ TREATMENT FORM ============ #}
+{% elif page == 'treatment_form' %}
+<div class="page-header"><h2>Record Treatment</h2></div>
+<div class="data-card"><div class="cb"><form method="post" style="max-width:900px">
+  <div class="row g-3 mb-3">
+    <div class="col-md-6"><label class="fl">Appointment *</label><select name="appointment_id" class="form-select fc" required><option value="">Select Completed Appointment</option>{% for a in apts %}<option value="{{ a.appointment_id }}">{{ a.pn }} — {{ a.dn }} ({{ a.appointment_date }}) {{ a.reason or '' }}</option>{% endfor %}</select></div>
+    <div class="col-md-6"><label class="fl">Treatment Date *</label><input type="date" name="treatment_date" class="form-control fc" required></div>
+    <div class="col-12"><label class="fl">Diagnosis *</label><textarea name="diagnosis" class="form-control fc" rows="2" required></textarea></div>
+    <div class="col-12"><label class="fl">Treatment Details</label><textarea name="treatment_details" class="form-control fc" rows="2"></textarea></div>
+    <div class="col-12"><label class="fl">Notes</label><textarea name="notes" class="form-control fc" rows="1"></textarea></div>
+  </div>
+  <hr>
+  <div class="d-flex justify-content-between align-items-center mb-3"><h6 class="mb-0"><i class="bi bi-capsule me-1"></i>Prescriptions</h6><button type="button" id="addPr" class="btn btn-sm btn-outline-success"><i class="bi bi-plus me-1"></i>Add Medicine</button></div>
+  <div id="prRows" data-opts="{% for m in meds %}<option value='{{ m.medicine_id }}'>{{ m.name }} (Stock: {{ m.stock_quantity }}) ₹{{ m.unit_price }}</option>{% endfor %}">
+    <div class="presc-row"><div class="row g-2 align-items-end">
+      <div class="col-md-3"><label class="fl">Medicine</label><select name="medicine_id[]" class="form-select fc" required><option value="">Select</option>{% for m in meds %}<option value="{{ m.medicine_id }}">{{ m.name }} (Stock: {{ m.stock_quantity }})</option>{% endfor %}</select></div>
+      <div class="col-md-1"><label class="fl">Qty</label><input type="number" name="quantity[]" class="form-control fc" min="1" value="10" required></div>
+      <div class="col-md-2"><label class="fl">Dosage</label><input type="text" name="dosage[]" class="form-control fc" placeholder="Twice daily" required></div>
+      <div class="col-md-1"><label class="fl">Days</label><input type="number" name="duration_days[]" class="form-control fc" min="1" value="7" required></div>
+      <div class="col-md-3"><label class="fl">Instructions</label><input type="text" name="instructions[]" class="form-control fc" placeholder="After food"></div>
+      <div class="col-md-2"></div>
+    </div></div>
+  </div>
+  <div class="mt-3"><button type="submit" class="btn-a"><i class="bi bi-check-lg me-1"></i>Save Treatment</button><a href="/treatments/" class="btn-o">Cancel</a></div>
+</form></div></div>
+
+{# ============ MEDICINES LIST ============ #}
+{% elif page == 'medicines' %}
+<div class="page-header d-flex justify-content-between align-items-center"><div><h2>Medicines</h2><p>Inventory management — stock auto-reduces on prescription via trigger</p></div><a href="/medicines/add" class="btn-a"><i class="bi bi-plus-lg me-1"></i>Add Medicine</a></div>
+<div class="data-card"><div class="cb" style="padding:0"><div class="table-responsive"><table class="table tbl table-hover mb-0"><thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Form</th><th>Price</th><th>Stock</th><th>Reorder Level</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+{% for m in medicines %}<tr>
+  <td>{{ m.medicine_id }}</td><td class="fw6">{{ m.name }}</td><td>{{ m.category }}</td><td>{{ m.dosage_form }}</td><td>₹{{ m.unit_price }}</td>
+  <td class="fw6">{{ m.stock_quantity }}</td><td>{{ m.reorder_level }}</td>
+  <td>{% if m.low %}<span class="badge-s b-low">Low Stock</span>{% else %}<span class="badge-s b-ok">In Stock</span>{% endif %}</td>
+  <td><a href="/medicines/edit/{{ m.medicine_id }}" class="btn btn-sm btn-outline-primary me-1">Edit</a>
+      <form method="post" action="/medicines/delete/{{ m.medicine_id }}" style="display:inline" data-cf><button class="btn btn-sm btn-outline-danger">Delete</button></form></td>
+</tr>{% endfor %}
+</tbody></table></div></div></div>
+
+{# ============ MEDICINE FORM ============ #}
+{% elif page == 'medicine_form' %}
+<div class="page-header"><h2>{% if edit %}Edit Medicine{% else %}Add Medicine{% endif %}</h2></div>
+<div class="data-card"><div class="cb"><form method="post" class="row g-3" style="max-width:600px">
+  <div class="col-md-8"><label class="fl">Name *</label><input type="text" name="name" class="form-control fc" value="{{ medicine.name if edit else '' }}" required></div>
+  <div class="col-md-4"><label class="fl">Form *</label><select name="dosage_form" class="form-select fc" required><option value="">Select</option>{% for f in ['Tablet','Capsule','Syrup','Injection','Cream','Drops','Inhaler','Powder'] %}<option value="{{ f }}" {% if edit and medicine.dosage_form==f %}selected{% endif %}>{{ f }}</option>{% endfor %}</select></div>
+  <div class="col-md-6"><label class="fl">Category</label><input type="text" name="category" class="form-control fc" value="{{ medicine.category if edit else '' }}"></div>
+  <div class="col-md-6"><label class="fl">Unit Price *</label><input type="number" name="unit_price" class="form-control fc" step="0.01" min="0" value="{{ medicine.unit_price if edit else '' }}" required></div>
+  <div class="col-md-6"><label class="fl">Stock Quantity *</label><input type="number" name="stock_quantity" class="form-control fc" min="0" value="{{ medicine.stock_quantity if edit else '0' }}" required></div>
+  <div class="col-md-6"><label class="fl">Reorder Level *</label><input type="number" name="reorder_level" class="form-control fc" min="0" value="{{ medicine.reorder_level if edit else '10' }}" required></div>
+  <div class="col-12"><label class="fl">Manufacturer</label><input type="text" name="manufacturer" class="form-control fc" value="{{ medicine.manufacturer if edit else '' }}"></div>
+  <div class="col-12"><button type="submit" class="btn-a"><i class="bi bi-check-lg me-1"></i>{% if edit %}Update{% else %}Add{% endif %} Medicine</button><a href="/medicines/" class="btn-o">Cancel</a></div>
+</form></div></div>
+
+{# ============ BILLING LIST ============ #}
+{% elif page == 'billing' %}
+<div class="page-header d-flex justify-content-between align-items-center"><div><h2>Billing</h2><p>Bills and payments — bills auto-generated via stored procedure</p></div><a href="/billing/generate" class="btn-a"><i class="bi bi-plus-lg me-1"></i>Generate Bill</a></div>
+<div class="data-card"><div class="cb" style="padding:0"><div class="table-responsive"><table class="table tbl table-hover mb-0"><thead><tr><th>Bill#</th><th>Patient</th><th>Consultation</th><th>Medicine Cost</th><th>Total</th><th>Paid</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead><tbody>
+{% for b in bills %}<tr>
+  <td>#{{ b.bill_id }}</td><td class="fw6">{{ b.pn }}</td><td>₹{{ "{:,.2f}".format(b.consultation_fee) }}</td><td>₹{{ "{:,.2f}".format(b.medicine_cost) }}</td><td class="fw6">₹{{ "{:,.2f}".format(b.total_amount) }}</td><td>₹{{ "{:,.2f}".format(b.paid) }}</td>
+  <td><span class="badge-s b-{{ b.status.lower() }}">{{ b.status }}</span></td><td>{{ b.bill_date }}</td>
+  <td>{% if b.status != 'Paid' %}<button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#payModal{{ b.bill_id }}">Pay</button>{% else %}<span class="fs12 text-muted">Paid</span>{% endif %}</td>
+</tr>
+<!-- Payment Modal -->
+<div class="modal fade" id="payModal{{ b.bill_id }}" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Record Payment — Bill #{{ b.bill_id }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <form method="post" action="/billing/pay/{{ b.bill_id }}"><div class="modal-body"><div class="mb-3"><label class="fl">Amount Due: ₹{{ "{:,.2f}".format(b.total_amount - b.paid) }}</label><input type="number" name="amount" class="form-control fc" step="0.01" min="0.01" max="{{ b.total_amount - b.paid }}" required></div>
+  <div class="mb-3"><label class="fl">Payment Method</label><select name="payment_method" class="form-select fc" required><option value="Cash">Cash</option><option value="Card">Card</option><option value="UPI">UPI</option><option value="Bank Transfer">Bank Transfer</option><option value="Insurance">Insurance</option></select></div>
+  <div class="mb-3"><label class="fl">Reference Number</label><input type="text" name="reference_number" class="form-control fc"></div></div>
+  <div class="modal-footer"><button type="button" class="btn-o" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn-a">Record Payment</button></div></form></div></div></div>
+{% endfor %}
+</tbody></table></div></div></div>
+
+{# ============ BILLING GENERATE ============ #}
+{% elif page == 'billing_generate' %}
+<div class="page-header d-flex justify-content-between align-items-center"><div><h2>Generate Bill</h2><p>Uses stored procedure <code>generate_bill()</code> to auto-calculate fees</p></div><a href="/billing/" class="btn-o"><i class="bi bi-arrow-left me-1"></i>Back</a></div>
+{% if error %}<div class="alert alert-danger"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>{% endif %}
+<div class="data-card"><div class="cb"><form method="post" style="max-width:600px">
+  <div class="mb-3"><label class="fl">Appointment *</label><select name="appointment_id" class="form-select fc" required><option value="">Select Appointment</option>{% for a in apts %}<option value="{{ a.appointment_id }}">{{ a.pn }} — {{ a.dn }} ({{ a.appointment_date }}) Fee: ₹{{ a.fee }}</option>{% endfor %}</select></div>
+  {% if not apts %}<div class="alert alert-info">No unbilled completed appointments found.</div>{% endif %}
+  <button type="submit" class="btn-a" {% if not apts %}disabled{% endif %}><i class="bi bi-lightning me-1"></i>Generate Bill (Stored Procedure)</button>
+</form></div></div>
+
+{# ============ REPORTS ============ #}
+{% elif page == 'reports' %}
+<div class="page-header"><h2>Reports</h2><p>Click a report type to view data directly from database</p></div>
+<div class="row g-3">
+  <div class="col-md-4"><a href="/reports/patients" class="data-card text-decoration-none d-block"><div class="cb text-center py-4"><i class="bi bi-people" style="font-size:40px;color:#2563eb"></i><h6 class="mt-2 mb-0 fw-bold">Patient Reports</h6><small class="text-muted">Appointments, treatments, spending per patient</small></div></a></div>
+  <div class="col-md-4"><a href="/reports/doctors" class="data-card text-decoration-none d-block"><div class="cb text-center py-4"><i class="bi bi-person-badge" style="font-size:40px;color:#16a34a"></i><h6 class="mt-2 mb-0 fw-bold">Doctor Reports</h6><small class="text-muted">Patient count, revenue per doctor</small></div></a></div>
+  <div class="col-md-4"><a href="/reports/appointments" class="data-card text-decoration-none d-block"><div class="cb text-center py-4"><i class="bi bi-calendar-check" style="font-size:40px;color:#ea580c"></i><h6 class="mt-2 mb-0 fw-bold">Appointment Reports</h6><small class="text-muted">All appointments with details</small></div></a></div>
+  <div class="col-md-4"><a href="/reports/revenue" class="data-card text-decoration-none d-block"><div class="cb text-center py-4"><i class="bi bi-currency-rupee" style="font-size:40px;color:#9333ea"></i><h6 class="mt-2 mb-0 fw-bold">Revenue Reports</h6><small class="text-muted">Monthly revenue aggregation</small></div></a></div>
+  <div class="col-md-4"><a href="/reports/medicines" class="data-card text-decoration-none d-block"><div class="cb text-center py-4"><i class="bi bi-capsule" style="font-size:40px;color:#0891b2"></i><h6 class="mt-2 mb-0 fw-bold">Medicine Inventory</h6><small class="text-muted">Stock levels and inventory value</small></div></a></div>
+</div>
+
+{% if rt %}
+<div class="mt-4">
+<div class="page-header d-flex justify-content-between align-items-center"><h2>{% if rt=='patients' %}Patient Reports{% elif rt=='doctors' %}Doctor Reports{% elif rt=='appointments' %}Appointment Reports{% elif rt=='revenue' %}Revenue Reports{% elif rt=='medicines' %}Medicine Inventory Reports{% endif %}</h2><a href="/reports/" class="btn-o"><i class="bi bi-arrow-left me-1"></i>Back</a></div>
+<div class="data-card"><div class="cb" style="padding:0"><div class="table-responsive"><table class="table tbl table-hover mb-0"><thead><tr>
+{% if rt=='patients' %}<th>ID</th><th>Name</th><th>Gender</th><th>Phone</th><th>Appointments</th><th>Treatments</th><th>Total Spent</th>
+{% elif rt=='doctors' %}<th>ID</th><th>Name</th><th>Specialization</th><th>Department</th><th>Appointments</th><th>Revenue</th>
+{% elif rt=='appointments' %}<th>ID</th><th>Patient</th><th>Doctor</th><th>Department</th><th>Date</th><th>Time</th><th>Status</th><th>Reason</th>
+{% elif rt=='revenue' %}<th>Month</th><th>Payments</th><th>Total Revenue</th><th>Avg Payment</th>
+{% elif rt=='medicines' %}<th>ID</th><th>Name</th><th>Category</th><th>Stock</th><th>Reorder Level</th><th>Price</th><th>Inventory Value</th><th>Status</th>{% endif %}
+</tr></thead><tbody>
+{% for r in report %}<tr>
+{% if rt=='patients' %}<td>{{ r.patient_id }}</td><td class="fw6">{{ r.name }}</td><td>{{ r.gender }}</td><td>{{ r.phone }}</td><td>{{ r.ta }}</td><td>{{ r.tt }}</td><td class="fw6">₹{{ "{:,.2f}".format(r.ts) }}</td>
+{% elif rt=='doctors' %}<td>{{ r.doctor_id }}</td><td class="fw6">{{ r.name }}</td><td>{{ r.specialization }}</td><td>{{ r.depn }}</td><td>{{ r.ta }}</td><td class="fw6">₹{{ "{:,.2f}".format(r.tr) }}</td>
+{% elif rt=='appointments' %}<td>#{{ r.appointment_id }}</td><td class="fw6">{{ r.pn }}</td><td>{{ r.dn }}</td><td>{{ r.depn }}</td><td>{{ r.appointment_date }}</td><td>{{ r.appointment_time }}</td><td><span class="badge-s b-{{ r.status.lower() }}">{{ r.status }}</span></td><td>{{ r.reason or '-' }}</td>
+{% elif rt=='revenue' %}<td class="fw6">{{ r.month }}</td><td>{{ r.pc }}</td><td class="fw6">₹{{ "{:,.2f}".format(r.tr) }}</td><td>₹{{ "{:,.2f}".format(r.ap) }}</td>
+{% elif rt=='medicines' %}<td>{{ r.medicine_id }}</td><td class="fw6">{{ r.name }}</td><td>{{ r.category }}</td><td>{{ r.stock_quantity }}</td><td>{{ r.reorder_level }}</td><td>₹{{ r.unit_price }}</td><td class="fw6">₹{{ "{:,.2f}".format(r.iv) }}</td><td><span class="badge-s {% if r.ss=='Low Stock' %}b-low{% else %}b-ok{% endif %}">{{ r.ss }}</span></td>{% endif %}
+</tr>{% endfor %}
+</tbody></table></div></div></div>
+{% endif %}
+
+{# ============ SQL DEMO ============ #}
+{% elif page == 'sql_demo' %}
+<div class="page-header"><h2>SQL Demonstration</h2><p>DBMS concepts — click a query to see SQL and live results from Supabase</p></div>
+<div class="row g-3">
+  <div class="col-lg-3">
+    <div class="data-card"><div class="ch"><h5>Queries</h5></div><div class="cb">
+    {% for key, (title, sql) in queries.items() %}
+      <a href="/sql-demo/run/{{ key }}" class="sql-btn {% if active==key %}active{% endif %}">{{ title }}</a>
+    {% endfor %}
+    </div></div>
+  </div>
+  <div class="col-lg-9">
+    {% if sql %}
+    <div class="data-card mb-3"><div class="ch"><h5><i class="bi bi-code-slash me-2"></i>{{ title }}</h5></div><div class="cb"><div class="sql-block">{{ sql }}</div></div></div>
+    <div class="data-card"><div class="ch"><h5><i class="bi bi-table me-2"></i>Result ({{ results|length }} rows)</h5></div><div class="cb" style="padding:0"><div class="table-responsive"><table class="table tbl table-hover mb-0"><thead><tr>
+    {% if results %}{% for col in results[0].keys() %}<th>{{ col }}</th>{% endfor %}{% endif %}
+    </tr></thead><tbody>
+    {% for row in results %}<tr>{% for val in row.values() %}<td>{{ val if val is not none else 'NULL' }}</td>{% endfor %}</tr>{% endfor %}
+    </tbody></table></div></div></div>
+    {% else %}
+    <div class="data-card"><div class="cb"><div class="empty-state"><i class="bi bi-cursor"></i><p>Select a query from the left panel to execute it against the database</p></div></div></div>
+    {% endif %}
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}
